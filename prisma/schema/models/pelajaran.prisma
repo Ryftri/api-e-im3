@@ -1,0 +1,13 @@
+model Pelajaran {
+    id BigInt @id @default(autoincrement())
+    jenjang_kelas Int
+    asal_sekolah String
+    creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+    creatorId BigInt
+    
+    nama_pelajaran String
+    createdAt DateTime @default(now()) 
+    updatedAt DateTime @updatedAt 
+
+    materi Materi[]
+}
