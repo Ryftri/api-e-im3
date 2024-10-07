@@ -7,7 +7,7 @@ export async function pelajaranSeed() {
         create: {
             nama_pelajaran: "Pelajaran A SMP Negeri 2 Barat Kelas 1",
             jenjang_kelas: 1,
-            asal_sekolah: 'smp negeri 2 barat',
+            asal_sekolah: 'smp negeri 2 barat'.toUpperCase(),
             creatorId: 2
         }
     })
@@ -18,7 +18,7 @@ export async function pelajaranSeed() {
         create: {
             nama_pelajaran: "Pelajaran B Kelas 2",
             jenjang_kelas: 2,
-            asal_sekolah: 'smp negeri 2 barat',
+            asal_sekolah: 'smp negeri 2 barat'.toUpperCase(),
             creatorId: 2
         }
     })
@@ -29,7 +29,7 @@ export async function pelajaranSeed() {
         create: {
             nama_pelajaran: "Pelajaran SMP Negeri 1 Lembeyan Kelas 1",
             jenjang_kelas: 1,
-            asal_sekolah: 'smp negeri 1 lembeyan',
+            asal_sekolah: 'smp negeri 1 lembeyan'.toUpperCase(),
             creatorId: 3
         }
     })
@@ -40,7 +40,7 @@ export async function pelajaranSeed() {
         create: {
             nama_pelajaran: "Pelajaran SMP Negeri 1 Lembeyan Kelas 2",
             jenjang_kelas: 2,
-            asal_sekolah: 'smp negeri 1 lembeyan',
+            asal_sekolah: 'smp negeri 1 lembeyan'.toUpperCase(),
             creatorId: 3
         }
     })
