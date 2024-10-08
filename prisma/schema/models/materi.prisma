@@ -13,5 +13,5 @@ model Materi {
     updatedAt DateTime @updatedAt
 
     tugas Tugas[]
-    user UserOnMateri[]
+    userAccess UserOnMateri[]
 }
