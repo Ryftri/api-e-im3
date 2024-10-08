@@ -31,6 +31,7 @@ import { FileCountInterceptor } from 'src/common/utils/FileCountInterceptor';
 import FileData from 'src/common/types/FileData';
 import { deleteManyFiles } from 'src/common/utils/deleteFiles';
 import { ConfigService } from '@nestjs/config';
+import findMateriByRole from 'src/common/utils/materi.utils';
 
 @UseGuards(AuthGuard)
 @Controller('materi')
@@ -108,7 +109,7 @@ export class MateriController {
   }
 
   @Get('get-by-id/:id')
-  @Roles('admin', 'guru')
+  @Roles('admin', 'guru', 'siswa')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get Materi By ID' })
   async findOne(
@@ -119,25 +120,7 @@ export class MateriController {
     const userId = req['user'].sub;
     const role = req['role'];
 
-    const materi =
-      role === 'admin'
-        ? await this.materiService.findOneFilteredWithInclude({
-            where: { id },
-            include: {
-              pelajaran: true,
-              tugas: true,
-            },
-          })
-        : await this.materiService.findOneFilteredWithInclude({
-            where: {
-              id,
-              creatorId: userId,
-            },
-            include: {
-              pelajaran: true,
-              tugas: true,
-            },
-          });
+    const materi = await findMateriByRole(Number(id), Number(userId), role, this.materiService)
 
     if (!materi) throw new NotFoundException('Materi tidak ditemukan');
 
