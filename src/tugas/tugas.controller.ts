@@ -11,13 +11,15 @@ import {
   Req,
   UseGuards,
   ForbiddenException,
+  BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
 import { TugasService } from 'src/tugas/tugas.service';
 import { CreateTugasDto } from 'src/tugas/dto/create-tugas.dto';
 import { UpdateTugasDto } from 'src/tugas/dto/update-tugas.dto';
 import {
-  ApiBearerAuth,
   ApiConsumes,
+  ApiHeader,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -29,6 +31,13 @@ import { JwtAuthGuard } from 'src/common/guards/access-token.guard';
 import { RoleGuard } from 'src/common/guards/roles.guard';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { validateAndUploadFiles } from 'src/common/utils/validate-upload-file';
+import { ConfigService } from '@nestjs/config';
+import { validateAndUpdateFiles } from 'src/common/utils/validate-update-file';
+import FileData from 'src/common/types/FileData';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileCountInterceptor } from 'src/common/utils/FileCountInterceptor';
+import { deleteManyFiles } from 'src/common/utils/deleteFiles';
 
 @UseGuards(AuthGuard)
 @Controller('tugas')
@@ -37,12 +46,18 @@ export class TugasController {
   constructor(
     private readonly tugasService: TugasService,
     private readonly prisma: PrismaService,
+    private configService: ConfigService,
   ) {}
 
   @Post('create')
-  @ApiBearerAuth()
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
+  @UseInterceptors(FilesInterceptor('files', 11), FileCountInterceptor)
   @ApiOperation({ summary: 'Create Tugas' })
   @ApiConsumes('multipart/form-data')
   async create(
@@ -52,27 +67,30 @@ export class TugasController {
   ) {
     const userId = req['user'].sub;
     const role = req['role'];
+    const files = req['files'] as Express.Multer.File[];
 
     if (role === 'guru') {
-      const materi = await this.prisma.materi.findFirst({
+      const pelajaran = await this.prisma.pelajaran.findFirst({
         where: {
-          id: createTugasDto.materiId,
+          id: createTugasDto.pelajaranId,
           creatorId: userId,
         },
       });
 
-      if (!materi) {
+      if (!pelajaran) {
         throw new ForbiddenException(
           'Anda hanya bisa membuat tugas pada materi yang Anda buat sendiri.',
         );
       }
     }
 
-    // const { fileName, fileUrl } = await validateAndUploadFile('tugas', file);
-    // createTugasDto.file = fileName;
-    // createTugasDto.file_url = fileUrl;
+    const fileNameAndUrl = await validateAndUploadFiles(
+      'tugas',
+      files,
+      this.configService,
+    );
 
-    const tugas = await this.tugasService.create(userId, createTugasDto);
+    const tugas = await this.tugasService.create(userId, createTugasDto, fileNameAndUrl);
 
     return res.status(201).json({
       status: 'success',
@@ -82,7 +100,11 @@ export class TugasController {
   }
 
   @Get('get-all')
-  @ApiBearerAuth()
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get All Tugas' })
@@ -90,38 +112,27 @@ export class TugasController {
     const userId = req['user'].sub;
     const role = req['role'];
 
-    const selecttedItem: Prisma.TugasSelect = {
-      id: true,
-      materiId: true,
-      creatorId: true,
-      nama_tugas: true,
-      isi_tugas: true,
-      // file: true,
-      // file_url: true,
-      deadline: true,
-      createdAt: true,
-      updatedAt: true,
-      pengumpulan: {
-        select: {
-          pengumpul: {
-            select: {
-              nama_lengkap: true,
-            },
-          },
-        },
-      },
+    const selecttedItem: Prisma.TugasInclude = {
+      creator: {
+        omit: {
+          password: true,
+          username: true,
+          email: true,
+          isActive: true,
+        }
+      }
     };
 
     const tugas =
       role === 'admin'
-        ? await this.tugasService.findManyFilteredWithSelect({
-            select: selecttedItem,
+        ? await this.tugasService.findManyFilteredWithInclude({
+            include: selecttedItem,
           })
-        : await this.tugasService.findManyFilteredWithSelect({
+        : await this.tugasService.findManyFilteredWithInclude({
             where: {
               creatorId: userId,
             },
-            select: selecttedItem,
+            include: selecttedItem,
           });
 
     return res.status(200).json({
@@ -132,7 +143,11 @@ export class TugasController {
   }
 
   @Get('get-by-id/:id')
-  @ApiBearerAuth()
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru', 'siswa')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get One Tugas' })
@@ -144,69 +159,41 @@ export class TugasController {
     const userId = req['user'].sub;
     const role = req['role'];
 
-    const selectedItems: Prisma.TugasSelect = {
-      id: true,
-      materiId: true,
-      creatorId: true,
-      nama_tugas: true,
-      isi_tugas: true,
-      // file: true,
-      // file_url: true,
-      deadline: true,
-      createdAt: true,
-      updatedAt: true,
-      materi: true,
-      pengumpulan: {
-        select: {
-          isi_pengumpulan: true,
-          // file_url: true,
-          // file: true,
-          pengumpul: {
-            select: {
-              id: true,
-              nama_lengkap: true,
-            },
-          },
-          createdAt: true,
-          updatedAt: true,
-        },
+    const selectedItems: Prisma.TugasInclude = {
+      pelajaran: {
+        include: {
+          creator: {
+            omit: {
+              password: true,
+              username: true,
+              email: true,
+              isActive: true,
+            }
+          }
+        }
       },
-    };
-
-    const selectedItemsRoleSiswa: Prisma.TugasSelect = {
-      id: true,
-      materiId: true,
-      creatorId: true,
-      nama_tugas: true,
-      isi_tugas: true,
-      // file: true,
-      // file_url: true,
-      deadline: true,
-      createdAt: true,
-      updatedAt: true,
-      materi: true,
+      pengumpulan: true
     };
 
     const tugas =
       role === 'admin'
-        ? await this.tugasService.findOneFilteredWithSelect({
+        ? await this.tugasService.findOneFilteredWithInclude({
             where: { id },
-            select: selectedItems,
+            include: selectedItems,
           })
         : role === 'guru'
-          ? await this.tugasService.findOneFilteredWithSelect({
+          ? await this.tugasService.findOneFilteredWithInclude({
               where: {
                 id,
                 creatorId: userId,
               },
-              select: selectedItems,
+              include: selectedItems,
             })
-          : await this.tugasService.findOneFilteredWithSelect({
+          : await this.tugasService.findOneFilteredWithInclude({
               where: {
                 id,
-                creatorId: userId,
               },
-              select: selectedItemsRoleSiswa,
+              include: selectedItems,
             });
 
     if (!tugas) throw new NotFoundException('Tugas tidak ditemukan');
@@ -219,9 +206,14 @@ export class TugasController {
   }
 
   @Patch('update/:id')
-  @ApiBearerAuth()
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
+  @UseInterceptors(FilesInterceptor('files', 11), FileCountInterceptor)
   @ApiOperation({ summary: 'Update Tugas' })
   @ApiConsumes('multipart/form-data')
   async update(
@@ -232,6 +224,7 @@ export class TugasController {
   ) {
     const userId = req['user'].sub;
     const role = req['role'];
+    const files = req['files'] as Express.Multer.File[];
 
     const tugas =
       role === 'admin'
@@ -242,24 +235,56 @@ export class TugasController {
               creatorId: userId,
             },
             include: {
-              materi: true,
+              pelajaran: true,
             },
           });
 
     if (!tugas) throw new NotFoundException('Tugas tidak ditemukan');
 
-    // const { fileName, fileUrl } = await validateAndUpdateFile(
-    //   tugas.file_url,
-    //   'materi',
-    //   file,
-    // );
+    const oldFiles: FileData[] = (tugas.files as unknown as any[]).map(
+      (file) => {
+        if (
+          typeof file === 'object' &&
+          'fileUrl' in file &&
+          'fileName' in file &&
+          'originalName' in file
+        ) {
+          return file as FileData;
+        } else {
+          throw new BadRequestException('Invalid file data structure');
+        }
+      },
+    );
 
-    // updateTugasDto.file_url = fileUrl;
-    // updateTugasDto.file = fileName;
+    let uploadedFiles = [];
+    if (files && files.length > 0) {
+      try {
+        uploadedFiles = await validateAndUpdateFiles(
+          oldFiles,
+          'tugas',
+          files,
+          this.configService,
+        );
+      } catch (error) {
+        throw new BadRequestException(
+          `Gagal mengunggah file: ${error.message}`,
+        );
+      }
+    }
+
+    let newFiles = [];
+    if (uploadedFiles.length > 0) {
+      newFiles = uploadedFiles.map((file) => ({
+        fileUrl: file.fileUrl,
+        fileName: file.fileName,
+        originalName: file.originalName,
+      }));
+    }
 
     const tugasUpdate = await this.tugasService.update({
       where: { id },
       data: updateTugasDto,
+      files: newFiles
     });
 
     return res.status(200).json({
@@ -270,7 +295,11 @@ export class TugasController {
   }
 
   @Delete('delete/:id')
-  @ApiBearerAuth()
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Delete Tugas' })
@@ -291,25 +320,36 @@ export class TugasController {
               creatorId: userId,
             },
             include: {
-              materi: true,
+              pelajaran: true,
             },
           });
 
     if (!tugas) throw new NotFoundException('Tugas tidak ditemukan');
 
-    // await del(tugas.file_url, { token: process.env.BLOB_READ_WRITE_TOKEN });
+    const oldFiles: FileData[] = (tugas.files as unknown as any[]).map(
+      (file) => {
+        if (
+          typeof file === 'object' &&
+          'fileUrl' in file &&
+          'fileName' in file &&
+          'originalName' in file
+        ) {
+          return file as FileData;
+        } else {
+          throw new BadRequestException('Invalid file data structure');
+        }
+      },
+    );
+
+    if (oldFiles && oldFiles.length > 0) {
+      try {
+        await deleteManyFiles(oldFiles, 'tugas');
+      } catch (error) {
+        throw new BadRequestException(`Gagal menghapus file: ${error.message}`);
+      }
+    }
 
     await this.tugasService.delete({ id });
-
-    // const oldExt = path.extname(tugas.file).toLowerCase()
-
-    // if (oldExt === '.doc' || oldExt === '.docx') {
-    //   const oldFileDocPath = `./public/tugas/doc/${tugas.file}`
-    //   fs.unlinkSync(oldFileDocPath);
-    // } else if (oldExt === '.pdf') {
-    //   const oldFilePdfPath = `./public/tugas/pdf/${tugas.file}`
-    //   fs.unlinkSync(oldFilePdfPath);
-    // }
 
     return res.status(200).json({
       status: 'success',

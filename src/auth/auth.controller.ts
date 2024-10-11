@@ -16,7 +16,7 @@ import { Request, Response } from 'express';
 import { UserService } from 'src/user/user.service';
 import * as argon2 from 'argon2';
 import { success } from 'src/common/utils/responseHandler';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 import { BigIntToJSON } from 'src/common/utils/bigint-to-json';
@@ -135,6 +135,11 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Logout' })
   async logout(@Req() req: Request, @Res() res: Response) {
     const headerAut = req.headers.authorization;
@@ -167,6 +172,11 @@ export class AuthController {
   }
 
   @Post('autologin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Autologin' })
   async autoLogin(@Req() req: Request, @Res() res: Response) {
     try {
@@ -232,6 +242,11 @@ export class AuthController {
   }
 
   @Get('get-me')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Get Me' })
   async getMe(@Req() req: Request, @Res() res: Response) {
     try {

@@ -18,7 +18,7 @@ import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { UpdateUserDto } from 'src/user/dto/update-user.dto';
 import { Request, Response } from 'express';
 import { BigIntToJSON } from 'src/common/utils/bigint-to-json';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { Roles } from 'src/common/anotations/roles';
 import { RoleGuard } from 'src/common/guards/roles.guard';
@@ -34,6 +34,11 @@ export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @Roles('admin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Get('get-all-guru')
   @ApiOperation({ summary: 'Get All Guru' })
@@ -48,6 +53,11 @@ export class UserController {
   }
 
   @Get('get-all-siswa')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get All Siswa' })
@@ -63,6 +73,11 @@ export class UserController {
   }
 
   @Post('create')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Create User' })
@@ -87,6 +102,11 @@ export class UserController {
   }
 
   @Roles('admin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Get('get-all')
   @ApiOperation({ summary: 'Get All User' })
@@ -100,6 +120,11 @@ export class UserController {
   }
 
   @Roles('admin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Get('find-one-guru/:id')
   @ApiOperation({ summary: 'Find One Guru' })
@@ -152,6 +177,11 @@ export class UserController {
   }
 
   @Roles('admin', 'guru')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Get('find-one-siswa/:id')
   @ApiOperation({ summary: 'Find One Siswa' })
@@ -167,16 +197,6 @@ export class UserController {
         username: true,
         email: true,
         isActive: true,
-        materi: {
-          select: {
-            materiId: true,
-            materi: {
-              select: {
-                nama_materi: true,
-              },
-            },
-          },
-        },
         pengumpulan: {
           select: {
             id: true,
@@ -203,6 +223,11 @@ export class UserController {
   }
 
   @Roles('admin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Patch('update/:id')
   @ApiOperation({ summary: 'Update User' })
@@ -237,6 +262,11 @@ export class UserController {
   }
 
   @Roles('admin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Update is Active User' })
   @Patch('toggle-active/:id')
@@ -261,6 +291,11 @@ export class UserController {
   }
 
   @Roles('admin')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Delete('delete/:id')
   @ApiOperation({ summary: 'Delete User' })
@@ -280,6 +315,11 @@ export class UserController {
   }
 
   @Roles('admin', 'guru', 'siswa')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'User Get Me' })
   @Get('get-me')
@@ -315,6 +355,11 @@ export class UserController {
   }
 
   @Roles('admin', 'guru', 'siswa')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Patch('update-profile')
   @ApiOperation({ summary: 'Update User' })

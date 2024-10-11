@@ -59,7 +59,6 @@ export class UserService {
         updatedAt: true,
         asal_sekolah: true,
         isActive: true,
-        materi: true,
         jit: true,
       },
     });
@@ -80,7 +79,6 @@ export class UserService {
         updatedAt: true,
         asal_sekolah: true,
         isActive: true,
-        materi: true,
         jit: true,
       },
     });

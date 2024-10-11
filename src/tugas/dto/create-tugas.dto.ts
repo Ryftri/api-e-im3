@@ -5,18 +5,28 @@ import {
   IsNumber,
   IsString,
   IsDate,
-  IsArray,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateTugasDto {
   @ApiProperty({
-    description: 'ID materi yang terkait dengan tugas',
+    description: 'ID pelajaran yang terkait dengan tugas',
     example: 1,
   })
   @IsNotEmpty()
   @IsNumber()
   @Type(() => Number)
-  materiId: number;
+  pelajaranId: number;
+
+  @ApiProperty({
+    description: 'ID dari user yang membuat tugas',
+    example: 1,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Type(() => Number)
+  creatorId: number;
+
 
   @ApiProperty({ description: 'Nama tugas', example: 'Tugas Matematika' })
   @IsNotEmpty()
@@ -24,34 +34,21 @@ export class CreateTugasDto {
   nama_tugas: string;
 
   @ApiProperty({
-    description: 'Isi tugas dalam format JSON',
-    example: [
-      {
-        id: 5,
-        title: 'Apa simbol kimia untuk air?',
-        answer: 'H2O',
-        points: 5,
-        content: 'Apa simbol kimia untuk air?',
-      },
-      {
-        id: 6,
-        type: 'multiple-choice',
-        title: 'Apa ibu kota dari Australia?',
-        points: 10,
-        content: 'Apa ibu kota dari Australia?',
-        options: [
-          { text: 'Sydney', isCorrect: false },
-          { text: 'Melbourne', isCorrect: false },
-          { text: 'Canberra', isCorrect: true },
-          { text: 'Brisbane', isCorrect: false },
-        ],
-      },
-    ],
+    description: 'Isi tugas',
+  })
+  @IsOptional()
+  @IsString()
+  isi_tugas?: string;
+
+  @ApiProperty({
+    description: 'Tanggal tugas dibuka',
+    example: '2024-12-31T23:59:59Z',
   })
   @IsNotEmpty()
-  @IsArray()
-  isi_tugas: object[];
-
+  @IsDate()
+  @Type(() => Date)
+  openIn: Date;
+  
   @ApiProperty({
     description: 'Tanggal batas waktu tugas',
     example: '2024-12-31T23:59:59Z',

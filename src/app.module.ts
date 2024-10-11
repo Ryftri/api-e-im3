@@ -9,7 +9,6 @@ import { join } from 'path';
 import { TugasModule } from 'src/tugas/tugas.module';
 import { PengumpulanModule } from 'src/pengumpulan/pengumpulan.module';
 import { NilaiModule } from 'src/nilai/nilai.module';
-import { UserOnMateriModule } from 'src/user-on-materi/user-on-materi.module';
 import { RefreshTokenModule } from 'src/refresh-token/refresh-token.module';
 import { AuthModule } from 'src/auth/auth.module';
 import configuration from 'src/common/config/configuration';
@@ -31,7 +30,6 @@ import configuration from 'src/common/config/configuration';
     TugasModule,
     PengumpulanModule,
     NilaiModule,
-    UserOnMateriModule,
     RefreshTokenModule,
     AuthModule,
   ],

@@ -43,7 +43,6 @@ export default async function findMateriByRole(
         },
         include: {
             pelajaran: true,
-            tugas: true,
         },
     });
 }

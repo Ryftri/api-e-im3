@@ -11,10 +11,12 @@ export class TugasService {
   async create(
     creatorId: number,
     data: CreateTugasDto,
+    files: any[],
   ): Promise<Partial<Tugas>> {
     return this.prisma.tugas.create({
       data: {
         ...data,
+        files,
         creatorId,
       },
     });
@@ -23,13 +25,18 @@ export class TugasService {
   async update({
     where,
     data,
+    files,
   }: {
     where: Prisma.TugasWhereUniqueInput;
     data: UpdateTugasDto;
+    files: any[];
   }): Promise<Partial<Tugas>> {
     return this.prisma.tugas.update({
       where,
-      data,
+      data: {
+        ...data,
+        files
+      },
     });
   }
 

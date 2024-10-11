@@ -17,7 +17,7 @@ import { Request, Response } from 'express';
 import { PelajaranService } from 'src/pelajaran/pelajaran.service';
 import { CreatePelajaranDto } from 'src/pelajaran/dto/create-pelajaran.dto';
 import { UpdatePelajaranDto } from 'src/pelajaran/dto/update-pelajaran.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BigIntToJSON } from 'src/common/utils/bigint-to-json';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { Roles } from 'src/common/anotations/roles';
@@ -33,6 +33,11 @@ export class PelajaranController {
   constructor(private readonly pelajaranService: PelajaranService) { }
 
   @Post('create')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Create Pelajaran' })
@@ -57,6 +62,11 @@ export class PelajaranController {
   }
 
   @Get('get-all')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get All Pelajaran' })
@@ -73,6 +83,11 @@ export class PelajaranController {
   }
 
   @Get('get-by-id/:id')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Get One Pelajaran' })
   @Roles('admin', 'guru', 'siswa')
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -115,6 +130,11 @@ export class PelajaranController {
   }
 
   @Get('get-by-sekolah-jenjang')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Get All Pelajaran sekolah? jenjang?' })
   @Roles('admin', 'guru', 'siswa')
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -144,6 +164,11 @@ export class PelajaranController {
 
 
   @Patch('update/:id')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Update Pelajaran' })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -172,6 +197,11 @@ export class PelajaranController {
   }
 
   @Delete('delete/:id')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Delete Pelajaran' })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)

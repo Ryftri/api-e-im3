@@ -48,32 +48,6 @@ export const PrismaExtensions = new PrismaClient().$extends({
                 role: true,
               },
             },
-            materi: {
-              select: {
-                materi: {
-                  select: {
-                    nama_materi: true,
-                    tugas: {
-                      select: {
-                        nama_tugas: true,
-                        pengumpulan: {
-                          select: {
-                            isi_pengumpulan: true,
-                            // file: true,
-                            // file_url: true,
-                            nilai: {
-                              select: {
-                                nilai: true,
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
             createdAt: true,
             updatedAt: true,
           },

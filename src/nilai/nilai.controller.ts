@@ -98,12 +98,6 @@ export class NilaiController {
                 tugas: {
                   select: {
                     nama_tugas: true,
-                    materiId: true,
-                    materi: {
-                      select: {
-                        nama_materi: true,
-                      },
-                    },
                   },
                 },
               },
@@ -129,12 +123,6 @@ export class NilaiController {
             tugas: {
               select: {
                 nama_tugas: true,
-                materiId: true,
-                materi: {
-                  select: {
-                    nama_materi: true,
-                  },
-                },
               },
             },
           },

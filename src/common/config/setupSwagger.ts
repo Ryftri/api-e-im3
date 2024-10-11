@@ -23,9 +23,9 @@ export const setupSwagger = (app: INestApplication) => {
 
     const config = new DocumentBuilder()
         .addBearerAuth()
-        .setTitle('API E-iM3')
+        .setTitle('API E-iM3-V1.0.0-demo')
         .setDescription('API Development Aplikasi E-iM3')
-        .setVersion('0.1.9-demo')
+        .setVersion('1.0.0-demo')
         .addServer('https://rehan.niznet.my.id', 'Production Server')
         .addServer('http://localhost:6948', 'Dev Server Port 6948')
         .build();

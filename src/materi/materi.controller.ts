@@ -16,7 +16,7 @@ import {
 import { MateriService } from 'src/materi/materi.service';
 import { CreateMateriDto } from 'src/materi/dto/create-materi.dto';
 import { UpdateMateriDto } from 'src/materi/dto/update-materi.dto';
-import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiConsumes, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { BigIntToJSON } from 'src/common/utils/bigint-to-json';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -44,6 +44,11 @@ export class MateriController {
   ) {}
 
   @Post('create')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FilesInterceptor('files', 11), FileCountInterceptor)
@@ -62,6 +67,7 @@ export class MateriController {
       files,
       this.configService,
     );
+    
     const materi = await this.materiService.create(
       userId,
       createMateriDto,
@@ -76,6 +82,11 @@ export class MateriController {
   }
 
   @Get('get-all')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get All Materi' })
@@ -88,7 +99,6 @@ export class MateriController {
         ? await this.materiService.findManyFilteredWithInclude({
             include: {
               pelajaran: true,
-              tugas: true,
             },
           })
         : await this.materiService.findManyFilteredWithInclude({
@@ -97,7 +107,6 @@ export class MateriController {
             },
             include: {
               pelajaran: true,
-              tugas: true,
             },
           });
 
@@ -109,6 +118,11 @@ export class MateriController {
   }
 
   @Get('get-by-id/:id')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru', 'siswa')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get Materi By ID' })
@@ -132,6 +146,11 @@ export class MateriController {
   }
 
   @Patch('update/:id')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FilesInterceptor('files', 11), FileCountInterceptor)
@@ -224,6 +243,11 @@ export class MateriController {
   }
 
   @Delete('delete/:id')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Delete Materi' })

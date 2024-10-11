@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateMateriDto {
@@ -18,7 +18,7 @@ export class CreateMateriDto {
   nama_materi: string;
 
   @ApiProperty({ description: 'Isi materi', example: 'Konten materi' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  isi_materi: string;
+  isi_materi?: string;
 }

@@ -10,4 +10,5 @@ model Pelajaran {
     updatedAt DateTime @updatedAt 
 
     materi Materi[]
+    tugas Tugas[]
 }
