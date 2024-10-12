@@ -193,7 +193,23 @@ export class TugasController {
               where: {
                 id,
               },
-              include: selectedItems,
+              include: {
+                pelajaran: {
+                  include: {
+                    creator: {
+                      omit: {
+                        password: true,
+                        username: true,
+                        email: true,
+                        isActive: true,
+                      }
+                    }
+                  }
+                },
+                pengumpulan: {
+                  where: { pengumpulId: userId },
+                },
+              },
             });
 
     if (!tugas) throw new NotFoundException('Tugas tidak ditemukan');

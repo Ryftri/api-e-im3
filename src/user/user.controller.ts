@@ -200,7 +200,7 @@ export class UserController {
         pengumpulan: {
           select: {
             id: true,
-            isi_pengumpulan: true,
+            detail_pengumpulan: true,
             nilai: {
               select: {
                 nilai: true,

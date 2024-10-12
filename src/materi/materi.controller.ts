@@ -12,6 +12,7 @@ import {
   Req,
   BadRequestException,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MateriService } from 'src/materi/materi.service';
 import { CreateMateriDto } from 'src/materi/dto/create-materi.dto';
@@ -60,6 +61,7 @@ export class MateriController {
     @Req() req: Request,
   ) {
     const userId = req['user'].sub;
+    const role = req['role'];
     const files = req['files'] as Express.Multer.File[];
 
     const fileNameAndUrl = await validateAndUploadFiles(
@@ -67,18 +69,53 @@ export class MateriController {
       files,
       this.configService,
     );
-    
-    const materi = await this.materiService.create(
-      userId,
-      createMateriDto,
-      fileNameAndUrl,
-    );
-
-    return res.status(201).json({
-      status: 'success',
-      message: 'Berhasil menambah materi',
-      materi: JSON.parse(JSON.stringify(materi, BigIntToJSON)),
-    });
+  
+    if (role === 'admin') {
+      const materi = await this.materiService.create(
+        userId,
+        createMateriDto,
+        fileNameAndUrl,
+      );
+  
+      return res.status(201).json({
+        status: 'success',
+        message: 'Berhasil menambah materi',
+        materi: JSON.parse(JSON.stringify(materi, BigIntToJSON)),
+      });
+  
+    } else if (role === 'guru') {
+      const pelajaran = await this.pelajaranService.findOneFilteredWithSelect({
+        where: {
+          id: createMateriDto.pelajaranId,
+          creatorId: userId,
+        },
+        select: {
+          creator: {
+            omit: {
+              password: true
+            }
+          }
+        }
+      });
+  
+      if (!pelajaran) {
+        throw new ForbiddenException('Anda tidak memiliki izin untuk membuat materi pada pelajaran ini');
+      }
+  
+      const materi = await this.materiService.create(
+        userId,
+        createMateriDto,
+        fileNameAndUrl,
+      );
+  
+      return res.status(201).json({
+        status: 'success',
+        message: 'Berhasil menambah materi',
+        materi: JSON.parse(JSON.stringify(materi, BigIntToJSON)),
+      });
+    } else {
+      throw new ForbiddenException('Role tidak dikenal');
+    }
   }
 
   @Get('get-all')

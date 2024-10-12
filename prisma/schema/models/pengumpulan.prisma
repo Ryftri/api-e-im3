@@ -7,7 +7,8 @@ model Pengumpulan {
     pengumpul User @relation(fields: [pengumpulId], references: [id], onDelete: Cascade)
     pengumpulId BigInt
 
-    isi_pengumpulan Json[]
+    detail_pengumpulan String?
+    files Json[]
 
     createdAt DateTime @default(now()) 
     updatedAt DateTime @updatedAt
