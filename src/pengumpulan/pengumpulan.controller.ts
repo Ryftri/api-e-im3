@@ -10,11 +10,14 @@ import {
   Res,
   Req,
   UseGuards,
+  UseInterceptors,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PengumpulanService } from 'src/pengumpulan/pengumpulan.service';
 import { CreatePengumpulanDto } from 'src/pengumpulan/dto/create-pengumpulan.dto';
 import { UpdatePengumpulanDto } from 'src/pengumpulan/dto/update-pengumpulan.dto';
-import { ApiOperation, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiConsumes, ApiTags, ApiHeader } from '@nestjs/swagger';
 import { BigIntToJSON } from 'src/common/utils/bigint-to-json';
 import { Request, Response } from 'express';
 
@@ -23,17 +26,38 @@ import { JwtAuthGuard } from 'src/common/guards/access-token.guard';
 import { RoleGuard } from 'src/common/guards/roles.guard';
 
 import { AuthGuard } from 'src/common/guards/auth.guard';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileCountInterceptor } from 'src/common/utils/FileCountInterceptor';
+import { PelajaranService } from 'src/pelajaran/pelajaran.service';
+import { TugasService } from 'src/tugas/tugas.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import FileData from 'src/common/types/FileData';
+import { ConfigService } from '@nestjs/config';
+import { validateAndUploadFiles } from 'src/common/utils/validate-upload-file';
+import { validateAndUpdateFiles } from 'src/common/utils/validate-update-file';
+import { deleteManyFiles } from 'src/common/utils/deleteFiles';
 
 @UseGuards(AuthGuard)
 @ApiTags('Pengumpulan')
 @Controller('pengumpulan')
 export class PengumpulanController {
-  constructor(private readonly pengumpulanService: PengumpulanService) {}
+  constructor(
+    private readonly pengumpulanService: PengumpulanService,
+    private readonly tugasService: TugasService,
+    private readonly prismaService: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('create')
   @Roles('admin', 'guru', 'siswa')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Create Pengumpulan' })
+  @UseInterceptors(FilesInterceptor('files', 11), FileCountInterceptor)
   @ApiConsumes('multipart/form-data')
   async create(
     @Body() createPengumpulanDto: CreatePengumpulanDto,
@@ -41,19 +65,34 @@ export class PengumpulanController {
     @Req() req: Request,
   ) {
     const userId = req['user'].sub;
+    const files = req['files'] as Express.Multer.File[];
 
-    // if (!file) throw new BadRequestException('File wajib diupload');
+    const tugas = await this.tugasService.findOne(createPengumpulanDto.tugasId);
 
-    // const { fileName, fileUrl } = await validateAndUploadFile(
-    //   'pengumpulan',
-    //   file,
-    // );
-    // createPengumpulanDto.file = fileName;
-    // createPengumpulanDto.file_url = fileUrl;
+    if (!tugas) {
+      throw new NotFoundException('Tugas tidak ditemukan');
+    }
+  
+    const currentTime = new Date();
+
+    if (currentTime < tugas.openIn) {
+      throw new ForbiddenException('Tugas belum dibuka. Anda tidak dapat mengumpulkan tugas sekarang.');
+    }
+
+    if (currentTime > tugas.deadline) {
+      throw new ForbiddenException('Waktu pengumpulan sudah berakhir.');
+    }
+
+    const fileNameAndUrl = await validateAndUploadFiles(
+      'pengumpulan',
+      files,
+      this.configService,
+    );
 
     const pengumpulan = await this.pengumpulanService.create(
       userId,
       createPengumpulanDto,
+      fileNameAndUrl
     );
 
     return res.status(201).json({
@@ -90,15 +129,28 @@ export class PengumpulanController {
   ) {
     const userId = req['user'].sub;
     const role = req['role'];
-    const pengumpulan = await this.pengumpulanService.findOnewithAuthorization(
-      userId,
-      role,
-      id,
-    );
 
-    if (!pengumpulan)
+    const pengumpulan = await this.prismaService.pengumpulan.findUnique({
+      where: { id },
+      include: {
+        tugas: true
+      }
+    });;
+  
+    if (!pengumpulan) {
       throw new NotFoundException('Pengumpulan tidak ditemukan');
-
+    }
+  
+    if (role === 'guru') {
+      if (Number(pengumpulan.tugas.creatorId) !== userId) {
+        throw new ForbiddenException('Anda tidak memiliki akses untuk melihat pengumpulan ini.');
+      }
+    } else if (role === 'siswa') {
+      if (Number(pengumpulan.pengumpulId) !== userId) {
+        throw new ForbiddenException('Anda tidak memiliki akses untuk melihat pengumpulan ini.');
+      }
+    }
+  
     return res.status(200).json({
       status: 'success',
       message: 'Berhasil menemukan pengumpulan',
@@ -107,8 +159,9 @@ export class PengumpulanController {
   }
 
   @Patch('update/:id')
-  @Roles('admin', 'guru', 'siswa')
+  @Roles('siswa')
   @UseGuards(JwtAuthGuard, RoleGuard)
+  @UseInterceptors(FilesInterceptor('files', 11), FileCountInterceptor)
   @ApiOperation({ summary: 'Update Pengumpulan' })
   @ApiConsumes('multipart/form-data')
   async update(
@@ -119,27 +172,62 @@ export class PengumpulanController {
   ) {
     const userId = req['user'].sub;
     const role = req['role'];
-    const pengumpulan = await this.pengumpulanService.findOnewithAuthorization(
-      userId,
-      role,
-      id,
-    );
+    const files = req['files'] as Express.Multer.File[];
+
+    const pengumpulan = await this.prismaService.pengumpulan.findUnique({
+      where: {
+        id: id,
+        pengumpulId: userId
+      }
+    });
 
     if (!pengumpulan)
       throw new NotFoundException('Pengumpulan tidak ditemukan');
 
-    // const { fileName, fileUrl } = await validateAndUpdateFile(
-    //   pengumpulan.file_url,
-    //   'pengumpulan',
-    //   file,
-    // );
+    const oldFiles: FileData[] = (pengumpulan.files as unknown as any[]).map(
+      (file) => {
+        if (
+          typeof file === 'object' &&
+          'fileUrl' in file &&
+          'fileName' in file &&
+          'originalName' in file
+        ) {
+          return file as FileData;
+        } else {
+          throw new BadRequestException('Invalid file data structure');
+        }
+      },
+    );
 
-    // updatePengumpulanDto.file_url = fileUrl;
-    // updatePengumpulanDto.file = fileName;
+    let uploadedFiles = [];
+    if (files && files.length > 0) {
+      try {
+        uploadedFiles = await validateAndUpdateFiles(
+          oldFiles,
+          'pengumpulan',
+          files,
+          this.configService,
+        );
+      } catch (error) {
+        throw new BadRequestException(
+          `Gagal mengunggah file: ${error.message}`,
+        );
+      }
+    }
+
+    let newFiles = [];
+    if (uploadedFiles.length > 0) {
+      newFiles = uploadedFiles.map((file) => ({
+        fileUrl: file.fileUrl,
+        fileName: file.fileName,
+        originalName: file.originalName,
+      }));
+    }
 
     const pengumpulanUpdate = await this.pengumpulanService.update({
       where: { id },
       data: updatePengumpulanDto,
+      files: newFiles
     });
 
     return res.status(200).json({
@@ -160,30 +248,53 @@ export class PengumpulanController {
   ) {
     const userId = req['user'].sub;
     const role = req['role'];
-    const pengumpulan = await this.pengumpulanService.findOnewithAuthorization(
-      userId,
-      role,
-      id,
+
+    const pengumpulan = await this.prismaService.pengumpulan.findUnique({
+      where: { id },
+      include: {
+        tugas: true, 
+      },
+    });
+
+    if (!pengumpulan) {
+      throw new NotFoundException('Pengumpulan tidak ditemukan');
+    }
+    
+    if (role === 'guru') {
+      
+      if (Number(pengumpulan.tugas.creatorId) !== userId) {
+        throw new ForbiddenException('Anda tidak memiliki akses untuk menghapus pengumpulan ini.');
+      }
+    } else if (role === 'siswa') {
+      if (Number(pengumpulan.pengumpulId) !== userId) {
+        throw new ForbiddenException('Anda tidak memiliki akses untuk menghapus pengumpulan ini.');
+      }
+    }
+
+    const oldFiles: FileData[] = (pengumpulan.files as unknown as any[]).map(
+      (file) => {
+        if (
+          typeof file === 'object' &&
+          'fileUrl' in file &&
+          'fileName' in file &&
+          'originalName' in file
+        ) {
+          return file as FileData;
+        } else {
+          throw new BadRequestException('Invalid file data structure');
+        }
+      },
     );
 
-    if (!pengumpulan)
-      throw new NotFoundException('Pengumpulan tidak ditemukan');
-
-    // await del(pengumpulan.file_url, {
-    //   token: process.env.BLOB_READ_WRITE_TOKEN,
-    // });
+    if (oldFiles && oldFiles.length > 0) {
+      try {
+        await deleteManyFiles(oldFiles, 'pengumpulan');
+      } catch (error) {
+        throw new BadRequestException(`Gagal menghapus file: ${error.message}`);
+      }
+    }
 
     await this.pengumpulanService.delete({ id });
-
-    // const oldExt = path.extname(pengumpulan.file).toLowerCase()
-
-    // if (oldExt === '.doc' || oldExt === '.docx') {
-    //   const oldFileDocPath = `./public/pengumpulan/doc/${pengumpulan.file}`
-    //   fs.unlinkSync(oldFileDocPath);
-    // } else if (oldExt === '.pdf') {
-    //   const oldFilePdfPath = `./public/pengumpulan/pdf/${pengumpulan.file}`
-    //   fs.unlinkSync(oldFilePdfPath);
-    // }
 
     return res.status(200).json({
       status: 'success',

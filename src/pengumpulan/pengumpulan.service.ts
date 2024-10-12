@@ -11,22 +11,13 @@ export class PengumpulanService {
   async create(
     pengumpulId: number,
     data: CreatePengumpulanDto,
+    files: any[],
   ): Promise<Partial<Pengumpulan>> {
-    // Cari tugas
-    const tugas = await this.prisma.tugas.findUnique({
-      where: { id: data.tugasId },
-    });
-
-    if (!tugas) {
-      throw new ForbiddenException('Tugas tidak ditemukan.');
-    }
-
-    // Jika valid, buat pengumpulan
     return this.prisma.pengumpulan.create({
       data: {
-        tugasId: data.tugasId,
         pengumpulId,
-        isi_pengumpulan: data.isi_pengumpulan,
+        ...data,
+        files
       },
     });
   }
@@ -34,13 +25,18 @@ export class PengumpulanService {
   async update({
     where,
     data,
+    files
   }: {
     where: Prisma.PengumpulanWhereUniqueInput;
     data: UpdatePengumpulanDto;
+    files: any[]
   }): Promise<Partial<Pengumpulan>> {
     return this.prisma.pengumpulan.update({
       where,
-      data,
+      data: {
+        ...data,
+        files
+      },
     });
   }
 
@@ -55,6 +51,9 @@ export class PengumpulanService {
   async findOne(id: number): Promise<Partial<Pengumpulan> | null> {
     return this.prisma.pengumpulan.findUnique({
       where: { id },
+      include: {
+        tugas: true
+      }
     });
   }
 
@@ -62,24 +61,21 @@ export class PengumpulanService {
     userId: bigint,
     role: string,
   ): Promise<Partial<Pengumpulan>[]> {
-    if (role === 'admin') {
-      return this.prisma.pengumpulan.findMany({
-        select: {
-          id: true,
-          tugasId: true,
-          pengumpulId: true,
-          isi_pengumpulan: true,
-          // file: true,
-          // file_url: true,
+    const includeData: Prisma.PengumpulanInclude = {
+      pengumpul: {
+        omit: {
+          password: true,
+          username: true,
           createdAt: true,
           updatedAt: true,
-          tugas: true,
-          pengumpul: {
-            select: {
-              nama_lengkap: true,
-            },
-          },
+          email: true
         },
+      },
+    }
+
+    if (role === 'admin') {
+      return this.prisma.pengumpulan.findMany({
+        include: includeData,
       });
     }
 
@@ -90,22 +86,7 @@ export class PengumpulanService {
             creatorId: userId,
           },
         },
-        select: {
-          id: true,
-          tugasId: true,
-          pengumpulId: true,
-          isi_pengumpulan: true,
-          // file: true,
-          // file_url: true,
-          createdAt: true,
-          updatedAt: true,
-          tugas: true,
-          pengumpul: {
-            select: {
-              nama_lengkap: true,
-            },
-          },
-        },
+        include: includeData,
       });
     }
 
@@ -114,85 +95,8 @@ export class PengumpulanService {
         where: {
           pengumpulId: userId,
         },
-        select: {
-          id: true,
-          tugasId: true,
-          pengumpulId: true,
-          // file: true,
-          // file_url: true,
-          isi_pengumpulan: true,
-          createdAt: true,
-          updatedAt: true,
-          tugas: true,
-          pengumpul: {
-            select: {
-              nama_lengkap: true,
-            },
-          },
-        },
+        include: includeData,
       });
-    }
-
-    throw new ForbiddenException('Peran tidak dikenali.');
-  }
-
-  async findOnewithAuthorization(
-    userId: number,
-    role: string,
-    pengumpulanId: number,
-  ): Promise<Partial<Pengumpulan> | null> {
-    const pengumpulan = await this.prisma.pengumpulan.findFirst({
-      where: {
-        id: pengumpulanId,
-      },
-      select: {
-        id: true,
-        tugasId: true,
-        pengumpulId: true,
-        // file: true,
-        // file_url: true,
-        isi_pengumpulan: true,
-        createdAt: true,
-        updatedAt: true,
-        tugas: {
-          select: {
-            creatorId: true,
-          },
-        },
-        pengumpul: {
-          select: {
-            id: true,
-            nama_lengkap: true,
-          },
-        },
-        nilai: true,
-      },
-    });
-
-    if (!pengumpulan) {
-      throw new ForbiddenException('Pengumpulan tidak ditemukan.');
-    }
-
-    if (role === 'admin') {
-      return pengumpulan;
-    }
-
-    if (role === 'guru') {
-      if (Number(pengumpulan.tugas.creatorId) !== userId) {
-        throw new ForbiddenException(
-          'Anda tidak memiliki akses ke pengumpulan ini.',
-        );
-      }
-      return pengumpulan;
-    }
-
-    if (role === 'siswa') {
-      if (Number(pengumpulan.pengumpulId) !== userId) {
-        throw new ForbiddenException(
-          'Anda tidak memiliki akses ke pengumpulan ini.',
-        );
-      }
-      return pengumpulan;
     }
 
     throw new ForbiddenException('Peran tidak dikenali.');

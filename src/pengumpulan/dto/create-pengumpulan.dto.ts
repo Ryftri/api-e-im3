@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsArray } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
 
 export class CreatePengumpulanDto {
   @ApiProperty({
@@ -13,19 +13,10 @@ export class CreatePengumpulanDto {
   tugasId: number;
 
   @ApiProperty({
-    description: 'Isi pengumpulan dalam format JSON',
-    example: [
-      {
-        id: 5,
-        answer: 'H2O',
-      },
-      {
-        id: 6,
-        answer: 'Canberra',
-      },
-    ],
+    description: 'Isi detail pengumpulan',
+    example: "Detail Pengumpulan",
   })
-  @IsNotEmpty()
-  @IsArray()
-  isi_pengumpulan: object[];
+  @IsOptional()
+  @IsString()
+  detail_pengumpulan?: string;
 }
