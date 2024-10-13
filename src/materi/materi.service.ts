@@ -86,10 +86,10 @@ export class MateriService {
     where,
     include,
   }: {
-    where: Prisma.MateriWhereInput;
+    where: Prisma.MateriWhereUniqueInput;
     include: Prisma.MateriInclude;
   }): Promise<Partial<Materi> | null> {
-    return this.prisma.materi.findFirst({
+    return this.prisma.materi.findUnique({
       where,
       include,
     });

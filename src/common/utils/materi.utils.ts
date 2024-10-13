@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { MateriService } from "src/materi/materi.service";
 
 export default async function findMateriByRole(
@@ -6,16 +7,14 @@ export default async function findMateriByRole(
     role: string,
     materiService: MateriService
 ) {
-    const includeOptions = {
+    const includeOptions: Prisma.MateriInclude = {
         pelajaran: true,
-        tugas: true,
-        userAccess: {
-            include: {
-                user: {
-                    omit: {
-                        password: true
-                    }
-                }
+        creator: {
+            omit: {
+                password: true,
+                username: true,
+                email: true,
+                isActive: true,
             }
         }
     };
@@ -41,9 +40,7 @@ export default async function findMateriByRole(
         where: {
             id,
         },
-        include: {
-            pelajaran: true,
-        },
+        include: includeOptions
     });
 }
   

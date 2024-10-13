@@ -14,6 +14,8 @@ export class InternalServerErrorExceptionFilter implements ExceptionFilter {
     const status = exception.getStatus();
     const exceptionResponse = exception.getResponse();
 
+    console.log(exceptionResponse)
+
     const message = exceptionResponse['message'] ?? 'Internal server error';
 
     response.status(status).json({
