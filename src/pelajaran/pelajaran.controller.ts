@@ -112,7 +112,38 @@ export class PelajaranController {
           updatedAt: true,
         }
       },
-      materi: true,
+      materi: {
+        include: {
+          creator: {
+            omit: {
+              email: true,
+              username: true,
+              asal_sekolah: true,
+              password: true,
+              isActive: true,
+              roleId: true,
+              createdAt: true,
+              updatedAt: true,
+            }
+          }
+        }
+      },
+      tugas: {
+        include: {
+          creator: {
+            omit: {
+              email: true,
+              username: true,
+              asal_sekolah: true,
+              password: true,
+              isActive: true,
+              roleId: true,
+              createdAt: true,
+              updatedAt: true,
+            }
+          }
+        }
+      }
     };
 
     const pelajaran = await this.pelajaranService.findOneFilteredWithInclude({
