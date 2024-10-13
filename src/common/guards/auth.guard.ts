@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 import { v4 as uuidV4 } from 'uuid';
 
@@ -15,6 +16,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private refreshTokenService: RefreshTokenService,
+    private prisma: PrismaService,
     private configService: ConfigService,
   ) {}
 
@@ -33,11 +35,21 @@ export class AuthGuard implements CanActivate {
       const { sub, username, email, role, jti } = payload;
 
       const modelJti = await this.refreshTokenService.findJti(jti);
+      const userIsActive = await this.prisma.refreshToken.findFirst({
+        where: {
+          jti: jti,
+        },
+        include: {
+          user: true
+        }
+      });
 
       if (!modelJti) throw new UnauthorizedException('Mohon Login');
 
       if (modelJti.expiredDate <= new Date())
         throw new UnauthorizedException('Sesi sudah habis');
+
+      if(!userIsActive.user.isActive)  throw new UnauthorizedException('User tidak aktif');
 
       const jtiAccessToken = uuidV4();
 

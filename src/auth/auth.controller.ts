@@ -211,6 +211,7 @@ export class AuthController {
       const jtiFind = await this.refresTokenService.findJti(jti);
 
       if (!jtiFind) throw new NotFoundException('User tidak ditemukan');
+      if(!user.isActive) throw new UnauthorizedException('User belum diaktivasi')
 
       const token = await this.authService.autoLogin(userPayload, jti);
 
