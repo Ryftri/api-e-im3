@@ -133,6 +133,15 @@ export class PengumpulanController {
     const pengumpulan = await this.prismaService.pengumpulan.findUnique({
       where: { id },
       include: {
+        pengumpul: {
+            omit: {
+                password: true,
+                username: true,
+                email: true,
+                isActive: true,
+                asal_sekolah: true
+            }
+        },
         tugas: true
       }
     });;

@@ -172,7 +172,19 @@ export class TugasController {
           }
         }
       },
-      pengumpulan: true
+      pengumpulan: {
+          include: {
+              pengumpul: {
+                  omit: {
+                      password: true,
+                      username: true,
+                      email: true,
+                      isActive: true,
+                      asal_sekolah: true
+                  }
+              }
+          }
+      }
     };
 
     const tugas =
@@ -208,6 +220,17 @@ export class TugasController {
                 },
                 pengumpulan: {
                   where: { pengumpulId: userId },
+                  include: {
+                    pengumpul: {
+                        omit: {
+                            password: true,
+                            username: true,
+                            email: true,
+                            isActive: true,
+                            asal_sekolah: true
+                        }
+                    }
+                  }
                 },
               },
             });
