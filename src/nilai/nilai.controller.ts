@@ -11,6 +11,8 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { NilaiService } from 'src/nilai/nilai.service';
 import { CreateNilaiDto } from 'src/nilai/dto/create-nilai.dto';
@@ -53,12 +55,25 @@ export class NilaiController {
       },
       include: {
         tugas: true,
+        nilai: true
       },
     });
+
+    if (!pengumpulan) {
+      throw new NotFoundException('Pengumpulan tidak ditemukan');
+    }
 
     if (role !== 'admin') {
       if (Number(pengumpulan.tugas.creatorId) !== userId)
         throw new ForbiddenException('Akses terlarang');
+    }
+
+    if (pengumpulan.nilai) {
+      throw new ConflictException('Nilai sudah diinputkan sebelumnya');
+    }
+
+    if (createNilaiDto.nilai < 0 || createNilaiDto.nilai > 100) {
+      throw new BadRequestException('Nilai harus antara 0 dan 100');
     }
 
     const nilai = await this.nilaiService.create(createNilaiDto);

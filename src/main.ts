@@ -10,6 +10,7 @@ import { ForbiddenExceptionFilter } from 'src/common/exceptions/custom-forbidden
 import { UnauthorizedExceptionFilter } from 'src/common/exceptions/custom-unauthorized-exception.filter';
 import * as cookieParser from 'cookie-parser';
 import { setupSwagger } from './common/config/setupSwagger';
+import { ConflictExceptionFilter } from './common/exceptions/conflic-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,6 +25,7 @@ async function bootstrap() {
     new InternalServerErrorExceptionFilter(),
     new ForbiddenExceptionFilter(),
     new UnauthorizedExceptionFilter(),
+    new ConflictExceptionFilter()
   );
 
   app.use(cookieParser());

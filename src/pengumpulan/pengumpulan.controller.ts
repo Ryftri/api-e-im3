@@ -142,7 +142,8 @@ export class PengumpulanController {
                 asal_sekolah: true
             }
         },
-        tugas: true
+        tugas: true,
+        nilai: true
       }
     });;
   
