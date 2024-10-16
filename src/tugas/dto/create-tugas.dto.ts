@@ -18,16 +18,6 @@ export class CreateTugasDto {
   @Type(() => Number)
   pelajaranId: number;
 
-  @ApiProperty({
-    description: 'ID dari user yang membuat tugas',
-    example: 1,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  @Type(() => Number)
-  creatorId: number;
-
-
   @ApiProperty({ description: 'Nama tugas', example: 'Tugas Matematika' })
   @IsNotEmpty()
   @IsString()

@@ -26,16 +26,19 @@ export class TugasService {
     where,
     data,
     files,
+    creatorId
   }: {
     where: Prisma.TugasWhereUniqueInput;
     data: UpdateTugasDto;
     files: any[];
+    creatorId: number
   }): Promise<Partial<Tugas>> {
     return this.prisma.tugas.update({
       where,
       data: {
         ...data,
-        files
+        files,
+        creatorId
       },
     });
   }

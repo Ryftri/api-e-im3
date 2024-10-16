@@ -323,6 +323,7 @@ export class TugasController {
     const tugasUpdate = await this.tugasService.update({
       where: { id },
       data: updateTugasDto,
+      creatorId: Number(userId),
       files: newFiles
     });
 

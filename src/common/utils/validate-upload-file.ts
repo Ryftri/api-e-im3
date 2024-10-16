@@ -9,7 +9,16 @@ export const validateAndUploadFiles = async (
   files: Express.Multer.File[],
   configService: ConfigService,
 ) => {
-  const fileDocumentExtensions = ['.pdf', '.docx', '.doc'];
+  const fileDocumentExtensions = [
+    '.pdf', 
+    '.docx', 
+    '.doc', 
+    '.ppt', 
+    '.pptx',
+    '.xls',
+    '.xlsx'
+  ];
+
   const videoExtensions = [
     '.mp4',
     '.mov',
