@@ -13,11 +13,12 @@ import {
   ForbiddenException,
   BadRequestException,
   ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { NilaiService } from 'src/nilai/nilai.service';
 import { CreateNilaiDto } from 'src/nilai/dto/create-nilai.dto';
 import { UpdateNilaiDto } from 'src/nilai/dto/update-nilai.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BigIntToJSON } from 'src/common/utils/bigint-to-json';
 import { Request, Response } from 'express';
 import { Roles } from 'src/common/anotations/roles';
@@ -40,6 +41,11 @@ export class NilaiController {
   @Post('create')
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Create Nilai' })
   async create(
     @Body() createNilaiDto: CreateNilaiDto,
@@ -87,6 +93,11 @@ export class NilaiController {
 
   @Get('get-all')
   @Roles('admin', 'guru')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Get All Nilai' })
   async findAll(@Res() res: Response, @Req() req: Request) {
@@ -153,6 +164,11 @@ export class NilaiController {
   @Get('get-by-id/:id')
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   @ApiOperation({ summary: 'Get One Nilai' })
   async findOne(
     @Param('id') id: number,
@@ -212,6 +228,11 @@ export class NilaiController {
   @Roles('admin', 'guru')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiOperation({ summary: 'Update Nilai' })
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
   async update(
     @Param('id') id: number,
     @Body() updateNilaiDto: UpdateNilaiDto,
@@ -258,10 +279,44 @@ export class NilaiController {
 
   @Delete('delete/:id')
   @ApiOperation({ summary: 'Delete Nilai' })
-  async remove(@Param('id') id: number, @Res() res: Response) {
-    const nilai = await this.nilaiService.findOne(id);
+  @Roles('admin', 'guru')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer [token]',
+    required: true,
+  })
+  async remove(
+    @Param('id') id: number, 
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    const userId = req['user'].sub;
+    const role = req['role'];
+
+    const nilai = await this.prisma.nilai.findUnique({
+      where: { id },
+      include: {
+        pengumpulan: {
+          include: {
+            tugas: true
+          }
+        }
+      }
+    });
 
     if (!nilai) throw new NotFoundException('Nilai tidak ditemukan');
+
+    if (role === 'guru') {
+      const tugas = await this.prisma.tugas.findUnique({
+        where: {
+          id: nilai.pengumpulan.tugasId,
+          creatorId: Number(userId)
+        }
+      })
+
+      if(!tugas) throw new UnauthorizedException('Maaf anda tidak memiliki akses tugas ini.')
+    }
 
     await this.nilaiService.delete({ id });
 
